@@ -1,0 +1,17 @@
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fuel_route_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-fuel_route}
+      POSTGRES_USER:     ${POSTGRES_USER:-fuel_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fuel_pass}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
