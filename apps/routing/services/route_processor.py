@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from apps.core.utils import haversine_miles
+from apps.core.utils import haversine_miles, decode_polyline
 
 
 @dataclass
@@ -23,9 +23,10 @@ class RouteProcessor:
     """
     Converts an OSRM route dict into a list of Waypoints with cumulative mileage.
 
-    The OSRM response contains a GeoJSON LineString geometry with coordinates
-    in [longitude, latitude] order. This class parses those coordinates and
-    computes cumulative mileage using haversine distance between consecutive points.
+    The OSRM response contains a Google Encoded Polyline geometry string.
+    This class decodes the polyline and computes cumulative mileage using
+    OSRM's pre-calculated leg distances (annotations=distance) when available,
+    falling back to haversine distance between consecutive points.
     """
 
     def __init__(self, osrm_route: dict) -> None:
@@ -34,7 +35,8 @@ class RouteProcessor:
 
         Args:
             osrm_route: Dictionary returned by OSRMClient.get_route containing
-                "distance_meters", "duration_seconds", and "geometry" (GeoJSON LineString).
+                "distance_meters", "duration_seconds", "geometry" (polyline string),
+                and optionally "legs" with "annotation.distance" array.
         """
         self._osrm_route = osrm_route
         self._waypoints: list[Waypoint] | None = None
@@ -55,11 +57,11 @@ class RouteProcessor:
 
     def get_waypoints(self) -> list[Waypoint]:
         """
-        Parse the GeoJSON LineString and compute cumulative mileage at every point.
+        Parse the geometry (Google Encoded Polyline) and compute cumulative mileage.
 
-        The geometry coordinates are in [longitude, latitude] order per GeoJSON spec.
-        We convert to (latitude, longitude) and compute cumulative distance using
-        haversine_miles between consecutive coordinate pairs.
+        Uses OSRM's pre-calculated leg distances (annotations=distance) to avoid
+        computing haversine for every segment in Python. Falls back to haversine
+        if annotations are missing.
 
         Returns:
             List of Waypoint objects sorted by cumulative_miles ascending.
@@ -69,30 +71,47 @@ class RouteProcessor:
             return self._waypoints
 
         geometry = self._osrm_route.get("geometry")
-        if not geometry or geometry.get("type") != "LineString":
+        if not geometry or not isinstance(geometry, str):
             self._waypoints = []
             return self._waypoints
 
-        coordinates = geometry.get("coordinates", [])
+        try:
+            coordinates = decode_polyline(geometry)
+        except Exception:
+            self._waypoints = []
+            return self._waypoints
+
         if not coordinates:
             self._waypoints = []
             return self._waypoints
 
+        # Use OSRM's pre-calculated leg distances (in meters) if available
+        leg_distances = self._osrm_route.get("legs", [])
+        segment_miles_list: list[float] = []
+
+        if leg_distances and "annotation" in leg_distances[0] and "distance" in leg_distances[0]["annotation"]:
+            # OSRM returned leg distances - convert meters to miles
+            distances_meters = leg_distances[0]["annotation"]["distance"]
+            segment_miles_list = [d / 1609.344 for d in distances_meters]
+        else:
+            # Fallback: compute haversine for each segment
+            segment_miles_list = [
+                haversine_miles(coordinates[i][0], coordinates[i][1], coordinates[i + 1][0], coordinates[i + 1][1])
+                for i in range(len(coordinates) - 1)
+            ]
+
+        # Build waypoints with cumulative miles using accumulate pattern
         waypoints: list[Waypoint] = []
         cumulative = 0.0
 
-        # First point has cumulative 0
-        first_lon, first_lat = coordinates[0]
+        # First point
+        first_lat, first_lon = coordinates[0]
         waypoints.append(Waypoint(lat=first_lat, lon=first_lon, cumulative_miles=cumulative))
 
-        # Iterate through remaining points, computing segment distances
-        for i in range(1, len(coordinates)):
-            prev_lon, prev_lat = coordinates[i - 1]
-            curr_lon, curr_lat = coordinates[i]
-
-            segment_miles = haversine_miles(prev_lat, prev_lon, curr_lat, curr_lon)
+        # Remaining points
+        for i, segment_miles in enumerate(segment_miles_list):
             cumulative += segment_miles
-
+            curr_lat, curr_lon = coordinates[i + 1]
             waypoints.append(Waypoint(lat=curr_lat, lon=curr_lon, cumulative_miles=cumulative))
 
         self._waypoints = waypoints

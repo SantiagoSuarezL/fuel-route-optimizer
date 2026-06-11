@@ -36,7 +36,7 @@ class RouteDetailSerializer(serializers.Serializer):
     start = serializers.CharField()
     finish = serializers.CharField()
     total_distance_miles = serializers.FloatField()
-    geometry = serializers.DictField()
+    geometry = serializers.CharField()
 
 
 class SummarySerializer(serializers.Serializer):

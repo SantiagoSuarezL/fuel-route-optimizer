@@ -55,7 +55,7 @@ class OSRMClient:
             Dictionary containing:
             - distance_meters: Route distance in meters (float)
             - duration_seconds: Route duration in seconds (float)
-            - geometry: GeoJSON LineString geometry (dict)
+            - geometry: Google Encoded Polyline string (str)
 
         Raises:
             RoutingServiceError: On any requests.RequestException, non-200 status,
@@ -72,7 +72,8 @@ class OSRMClient:
         url = f"{self.base_url}/route/v1/driving/{lon1},{lat1};{lon2},{lat2}"
         params = {
             "overview": "full",
-            "geometries": "geojson",
+            "geometries": "polyline",
+            "annotations": "distance",
         }
 
         try:

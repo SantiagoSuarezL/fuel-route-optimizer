@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from apps.core.exceptions_classes import NoFuelStationError
-from apps.core.utils import haversine_miles, min_distance_to_polyline
+from apps.core.utils import haversine_miles
 
 if TYPE_CHECKING:
     from apps.stations.models import FuelStation
@@ -122,8 +122,7 @@ class StationCorridorService:
         if not waypoints:
             return []
 
-        # Build (lat, lon) tuples for min_distance_to_polyline
-        polyline = [(wp.lat, wp.lon) for wp in waypoints]
+        sampled_waypoints = waypoints[::25]
 
         bbox_min_lat, bbox_max_lat, bbox_min_lon, bbox_max_lon = (
             self._compute_bounding_box(waypoints, corridor_miles)
@@ -144,13 +143,14 @@ class StationCorridorService:
         # Step 2 — haversine fine‑filter in Python
         results: list[StationOnRoute] = []
         for station in candidates.iterator():
-            dist_to_route = min_distance_to_polyline(
-                station.latitude, station.longitude, polyline,
-            )
-            if dist_to_route <= corridor_miles:
-                closest_miles = self._closest_waypoint_miles(
-                    station.latitude, station.longitude, waypoints,
-                )
+            best_dist = float("inf")
+            closest_miles = 0.0
+            for wp in sampled_waypoints:
+                d = haversine_miles(station.latitude, station.longitude, wp.lat, wp.lon)
+                if d < best_dist:
+                    best_dist = d
+                    closest_miles = wp.cumulative_miles
+            if best_dist <= corridor_miles:
                 results.append(
                     StationOnRoute(
                         station=station,

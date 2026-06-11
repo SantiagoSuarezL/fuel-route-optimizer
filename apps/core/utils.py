@@ -127,3 +127,49 @@ def meters_to_miles(meters: float) -> float:
         Distance in miles (1 mile = 1609.344 m).
     """
     return meters / 1609.344
+
+
+def decode_polyline(polyline: str) -> list[tuple[float, float]]:
+    """Decode a Google Encoded Polyline string into a list of (lat, lon) tuples.
+
+    Args:
+        polyline: Google Encoded Polyline string.
+
+    Returns:
+        List of (latitude, longitude) tuples in decimal degrees.
+    """
+    coordinates = []
+    index = 0
+    lat = 0
+    lon = 0
+
+    while index < len(polyline):
+        # Decode latitude delta
+        shift = 0
+        result = 0
+        while True:
+            byte = ord(polyline[index]) - 63
+            index += 1
+            result |= (byte & 0x1F) << shift
+            shift += 5
+            if byte < 0x20:
+                break
+        dlat = ~(result >> 1) if (result & 1) else (result >> 1)
+        lat += dlat
+
+        # Decode longitude delta
+        shift = 0
+        result = 0
+        while True:
+            byte = ord(polyline[index]) - 63
+            index += 1
+            result |= (byte & 0x1F) << shift
+            shift += 5
+            if byte < 0x20:
+                break
+        dlon = ~(result >> 1) if (result & 1) else (result >> 1)
+        lon += dlon
+
+        coordinates.append((lat * 1e-5, lon * 1e-5))
+
+    return coordinates
