@@ -1,3 +1,6 @@
 from django.urls import path
+from apps.routing.views import OptimizeRouteView
 
-urlpatterns = []
+urlpatterns = [
+    path("route/", OptimizeRouteView.as_view(), name="optimize-route"),
+]

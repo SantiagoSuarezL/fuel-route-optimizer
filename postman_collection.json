@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "Fuel Route Optimization API",
+    "description": "API that computes optimal fuel stops for US road trips. Given a start and finish location, returns a full route with geometry, fuel stops selected by greedy price-minimization, and a cost summary.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "New York, NY → Los Angeles, CA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/v1/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "v1", "route", ""]
+        },
+        "description": "Transcontinental route from New York City to Los Angeles. Tests full pipeline: geocoding, OSRM routing, station corridor filtering, and greedy optimization."
+      }
+    },
+    {
+      "name": "Chicago, IL → Houston, TX",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Houston, TX\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/v1/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "v1", "route", ""]
+        },
+        "description": "Midwest-to-South route: Chicago to Houston. A shorter trip (~1,100 miles) that typically requires 2–3 fuel stops."
+      }
+    },
+    {
+      "name": "Seattle, WA → Miami, FL",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Seattle, WA\",\n  \"finish\": \"Miami, FL\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/v1/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "v1", "route", ""]
+        },
+        "description": "Cross-country diagonal route: Seattle to Miami (~3,400 miles). The longest trip in the collection, typically requiring 7–8 fuel stops."
+      }
+    },
+    {
+      "name": "Empty start field (400 error)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"\",\n  \"finish\": \"Chicago, IL\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/v1/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "v1", "route", ""]
+        },
+        "description": "Tests validation: blank start field should return HTTP 400 with an error message."
+      }
+    },
+    {
+      "name": "Paris, France → Berlin, Germany (400 error)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Paris, France\",\n  \"finish\": \"Berlin, Germany\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/v1/route/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "v1", "route", ""]
+        },
+        "description": "Tests USA-only validation: European locations should return HTTP 400 with a 'not within the USA' error."
+      }
+    }
+  ]
+}
