@@ -100,7 +100,7 @@ curl -X POST http://localhost:8000/api/v1/route/ \
 | Missing/blank field | 400 | `{"error": "'start' is required"}` |
 | Geocoding failed | 400 | `{"error": "Could not geocode 'Fakeville, ZZ'"}` |
 | Location outside USA | 400 | `{"error": "'Paris, France' is not within the USA"}` |
-| OSRM unavailable | 503 | `{"error": "Routing service unavailable"}` |
+| OSRM unavailable | 502 | `{"error": "Routing service unavailable"}` |
 | No station reachable | 422 | `{"error": "No fuel station found near mile 340"}` |
 
 ## Design Decisions
