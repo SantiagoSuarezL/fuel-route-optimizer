@@ -160,6 +160,9 @@ venv.bak/
 opencode.json
 MASTER_PROMPT.md
 FUEL_ROUTE_API_PLAN.md
+CLAUDE.md
+.claude/
+.agent/
 
 # Spyder project settings
 .spyderproject
